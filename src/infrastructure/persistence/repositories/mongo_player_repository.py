@@ -28,10 +28,8 @@ class MongoPlayerRepository(PlayerRepository):
         # Return with IDs
         result = []
         for m in models:
-            p_data = m.model_dump()
-            p_data["id"] = str(m.id)
-            p_data["match_id"] = str(p_data["match_id"])
-            result.append(Player(**p_data))
+            p_data = m.model_dump(exclude={"id", "match_id"})
+            result.append(Player(id=str(m.id), match_id=str(m.match_id), **p_data))
         return result
 
     async def list_by_match(self, match_id: str, team: Optional[str] = None) -> List[Player]:
@@ -45,7 +43,7 @@ class MongoPlayerRepository(PlayerRepository):
             query = query.find(PlayerModel.team == team)
             
         models = await query.to_list()
-        return [Player(id=str(m.id), **{**m.model_dump(), "match_id": str(m.match_id)}) for m in models]
+        return [Player(id=str(m.id), match_id=str(m.match_id), **m.model_dump(exclude={"id", "match_id"})) for m in models]
 
     async def get_by_id(self, match_id: str, player_id: str) -> Optional[Player]:
         # Implementation skipped for brevity unless needed, but required by protocol

@@ -64,3 +64,27 @@ async def test_full_game_flow(client: AsyncClient):
     match_check_2 = await client.get(f"/matches/{match_id}")
     assert match_check_2.json()["local_score"] == 1
     assert match_check_2.json()["visitor_score"] == 1
+
+@pytest.mark.asyncio
+async def test_get_events_by_match(client: AsyncClient):
+    # 1. Create a match
+    match_res = await client.post("/matches/", json={"team_a_name": "Team1", "team_b_name": "Team2"})
+    match_id = match_res.json()["id"]
+
+    # 2. Add some events
+    await client.post("/events/", json={
+        "match_id": match_id, "timestamp": 10, "time_formatted": "00:10",
+        "player": 1, "team": "A", "action": "GOL"
+    })
+    await client.post("/events/", json={
+        "match_id": match_id, "timestamp": 20, "time_formatted": "00:20",
+        "player": 2, "team": "B", "action": "PARADA"
+    })
+
+    # 3. Get events
+    response = await client.get(f"/events/{match_id}")
+    assert response.status_code == 200
+    events = response.json()
+    assert len(events) == 2
+    assert events[0]["match_id"] == match_id
+    assert events[1]["match_id"] == match_id

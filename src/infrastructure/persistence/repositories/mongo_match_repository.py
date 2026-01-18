@@ -18,12 +18,12 @@ class MongoMatchRepository(MatchRepository):
             return None
         model = await MatchModel.get(oid)
         if model:
-            return Match(id=str(model.id), **model.model_dump())
+            return Match(id=str(model.id), **model.model_dump(exclude={"id"}))
         return None
 
     async def list_all(self, skip: int = 0, limit: int = 50) -> List[Match]:
         models = await MatchModel.find_all().skip(skip).limit(limit).to_list()
-        return [Match(id=str(m.id), **m.model_dump()) for m in models]
+        return [Match(id=str(m.id), **m.model_dump(exclude={"id"})) for m in models]
 
     async def update(self, match_id: str, match_data: dict) -> Optional[Match]:
         try:
@@ -36,7 +36,7 @@ class MongoMatchRepository(MatchRepository):
         
         await model.update({"$set": match_data})
         updated_model = await MatchModel.get(oid)
-        return Match(id=str(updated_model.id), **updated_model.model_dump())
+        return Match(id=str(updated_model.id), **updated_model.model_dump(exclude={"id"}))
 
     async def delete(self, match_id: str) -> bool:
         try:

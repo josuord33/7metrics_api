@@ -26,9 +26,8 @@ class MongoEventRepository(EventRepository):
         # Convert back to domain entity
         events = []
         for m in models:
-            data = m.model_dump()
-            data["match_id"] = str(data["match_id"]) # convert ObjectId back to str
-            events.append(Event(id=str(m.id), **data))
+            data = m.model_dump(exclude={"id", "match_id"})
+            events.append(Event(id=str(m.id), match_id=str(m.match_id), **data))
         return events
 
     async def delete_last_by_match(self, match_id: str) -> bool:

@@ -37,3 +37,6 @@ class EventUseCases:
         # Simplification: Just deleting last event, would need to revert score logic here properly
         # Ideally fetch last event first, check if it was a goal, then revert score, then delete.
         return await self.event_repository.delete_last_by_match(match_id)
+
+    async def list_events_by_match(self, match_id: str) -> list[Event]:
+        return await self.event_repository.list_by_match(match_id)

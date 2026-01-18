@@ -32,3 +32,10 @@ async def undo_last_event(
     if not success:
         raise HTTPException(status_code=404, detail="No event to delete or match not found")
     return {"status": "deleted"}
+
+@router.get("/{match_id}", response_model=List[Event])
+async def list_events(
+    match_id: str,
+    use_cases: EventUseCases = Depends(get_event_use_cases)
+):
+    return await use_cases.list_events_by_match(match_id)

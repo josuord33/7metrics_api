@@ -8,26 +8,20 @@ from src.main import app
 from src.infrastructure.config.settings import settings
 from src.infrastructure.persistence.models.match_model import MatchModel
 from src.infrastructure.persistence.models.event_model import EventModel
+from src.infrastructure.persistence.models.player_model import PlayerModel
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for each test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-@pytest.fixture(scope="session")
-async def test_db_client():
+@pytest.fixture(scope="function")
+async def test_db_client() -> AsyncIOMotorClient:
     """Create a MongoDB client for testing."""
     client = AsyncIOMotorClient(settings.MONGODB_URL)
     # Use a separate test database
     db_name = "test_handball_statistics"
     await init_beanie(
         database=client[db_name],
-        document_models=[MatchModel, EventModel]
+        document_models=[MatchModel, EventModel, PlayerModel] # Added PlayerModel just in case
     )
     yield client
-    # Clean up after session
+    # Clean up after test
     await client.drop_database(db_name)
 
 @pytest.fixture(scope="function")
@@ -35,7 +29,8 @@ async def client(test_db_client) -> AsyncGenerator[AsyncClient, None]:
     """Create an AsyncClient for testing API endpoints."""
     # Initialize DB for each test function (though session fixture handles init_beanie)
     # We yield the client to make requests
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    from httpx import ASGITransport
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     
     # Clean up collections after each test

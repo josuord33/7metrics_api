@@ -75,7 +75,7 @@ async def test_register_non_goal_does_not_update_score(event_use_cases, mock_mat
         time_formatted="02:00",
         player=7,
         team=TeamSide.A,
-        action=ActionType.PÉRDIDA # Not a goal
+        action=ActionType.PERDIDA # Not a goal
     )
     
     mock_match_repo.get_by_id.return_value = initial_match
