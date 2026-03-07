@@ -54,3 +54,52 @@ class EventUseCases:
 
     async def list_events_by_match(self, match_id: str) -> list[Event]:
         return await self.event_repository.list_by_match(match_id)
+
+    async def delete_event(self, event_id: str) -> Optional[Event]:
+        event = await self.event_repository.get_by_id(event_id)
+        if not event:
+            return None
+
+        if event.action in GOAL_ACTIONS:
+            match = await self.match_repository.get_by_id(event.match_id)
+            if match:
+                update_data = {}
+                if event.team == "A":
+                    update_data["local_score"] = max(0, match.local_score - 1)
+                else:
+                    update_data["visitor_score"] = max(0, match.visitor_score - 1)
+                await self.match_repository.update(event.match_id, update_data)
+
+        await self.event_repository.delete_by_id(event_id)
+        return event
+
+    async def update_event(self, event_id: str, update_data: dict) -> Optional[Event]:
+        event = await self.event_repository.get_by_id(event_id)
+        if not event:
+            return None
+
+        old_action = event.action
+        new_action = update_data.get("action", old_action)
+
+        old_is_goal = old_action in GOAL_ACTIONS
+        new_is_goal = new_action in GOAL_ACTIONS
+
+        if old_is_goal != new_is_goal:
+            match = await self.match_repository.get_by_id(event.match_id)
+            if match:
+                score_update = {}
+                if event.team == "A":
+                    field = "local_score"
+                    current = match.local_score
+                else:
+                    field = "visitor_score"
+                    current = match.visitor_score
+
+                if old_is_goal and not new_is_goal:
+                    score_update[field] = max(0, current - 1)
+                else:
+                    score_update[field] = current + 1
+
+                await self.match_repository.update(event.match_id, score_update)
+
+        return await self.event_repository.update_by_id(event_id, update_data)

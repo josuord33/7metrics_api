@@ -44,3 +44,38 @@ class MongoEventRepository(EventRepository):
         deleted_event = Event(id=str(last_event.id), match_id=str(last_event.match_id), **data)
         await last_event.delete()
         return deleted_event
+
+    async def get_by_id(self, event_id: str) -> Optional[Event]:
+        try:
+            oid = PydanticObjectId(event_id)
+        except:
+            return None
+        model = await EventModel.get(oid)
+        if not model:
+            return None
+        data = model.model_dump(exclude={"id", "match_id"})
+        return Event(id=str(model.id), match_id=str(model.match_id), **data)
+
+    async def delete_by_id(self, event_id: str) -> bool:
+        try:
+            oid = PydanticObjectId(event_id)
+        except:
+            return False
+        model = await EventModel.get(oid)
+        if not model:
+            return False
+        await model.delete()
+        return True
+
+    async def update_by_id(self, event_id: str, update_data: dict) -> Optional[Event]:
+        try:
+            oid = PydanticObjectId(event_id)
+        except:
+            return None
+        model = await EventModel.get(oid)
+        if not model:
+            return None
+        await model.update({"$set": update_data})
+        updated = await EventModel.get(oid)
+        data = updated.model_dump(exclude={"id", "match_id"})
+        return Event(id=str(updated.id), match_id=str(updated.match_id), **data)

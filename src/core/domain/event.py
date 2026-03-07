@@ -19,4 +19,6 @@ class Event(BaseModel):
     defense_at_moment: Optional[DefenseType] = None
     context: Optional[List[str]] = None
     rival_goalkeeper: Optional[int] = None
+    turnover_type: Optional[str] = None
+    recovery_type: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
