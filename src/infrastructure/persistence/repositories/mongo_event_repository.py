@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from beanie import PydanticObjectId
 from src.core.domain.event import Event
 from src.core.ports.event_repository import EventRepository
@@ -30,14 +30,17 @@ class MongoEventRepository(EventRepository):
             events.append(Event(id=str(m.id), match_id=str(m.match_id), **data))
         return events
 
-    async def delete_last_by_match(self, match_id: str) -> bool:
+    async def delete_last_by_match(self, match_id: str) -> Optional[Event]:
         try:
             oid = PydanticObjectId(match_id)
         except:
-            return False
-            
+            return None
+
         last_event = await EventModel.find(EventModel.match_id == oid).sort("-created_at").first_or_none()
-        if last_event:
-            await last_event.delete()
-            return True
-        return False
+        if not last_event:
+            return None
+
+        data = last_event.model_dump(exclude={"id", "match_id"})
+        deleted_event = Event(id=str(last_event.id), match_id=str(last_event.match_id), **data)
+        await last_event.delete()
+        return deleted_event

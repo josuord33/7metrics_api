@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from src.core.domain.event import Event
+from src.core.domain.match import Match
 from src.infrastructure.persistence.repositories.mongo_match_repository import MongoMatchRepository
 from src.infrastructure.persistence.repositories.mongo_event_repository import MongoEventRepository
 from src.application.use_cases.event_use_cases import EventUseCases
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
-# Dependency Injection Helper
 def get_event_use_cases():
     match_repo = MongoMatchRepository()
     event_repo = MongoEventRepository()
@@ -23,15 +23,15 @@ async def register_event(
         raise HTTPException(status_code=404, detail="Match not found")
     return created_event
 
-@router.delete("/last/{match_id}")
+@router.delete("/last/{match_id}", response_model=Match)
 async def undo_last_event(
     match_id: str,
     use_cases: EventUseCases = Depends(get_event_use_cases)
 ):
-    success = await use_cases.undo_last_event(match_id)
-    if not success:
+    match = await use_cases.undo_last_event(match_id)
+    if not match:
         raise HTTPException(status_code=404, detail="No event to delete or match not found")
-    return {"status": "deleted"}
+    return match
 
 @router.get("/{match_id}", response_model=List[Event])
 async def list_events(

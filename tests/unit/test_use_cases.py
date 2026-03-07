@@ -86,4 +86,121 @@ async def test_register_non_goal_does_not_update_score(event_use_cases, mock_mat
 
     # Assert
     mock_event_repo.create.assert_called_once()
-    mock_match_repo.update.assert_not_called() # Score should not change
+    mock_match_repo.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_undo_goal_decrements_local_score(event_use_cases, mock_match_repo, mock_event_repo):
+    match_id = "match_123"
+    deleted_event = Event(
+        id="event_1",
+        match_id=match_id,
+        timestamp=120,
+        time_formatted="02:00",
+        player=7,
+        team=TeamSide.A,
+        action=ActionType.GOL
+    )
+    current_match = Match(
+        id=match_id,
+        team_a_name="Team A",
+        team_b_name="Team B",
+        local_score=5,
+        visitor_score=3
+    )
+    updated_match = Match(
+        id=match_id,
+        team_a_name="Team A",
+        team_b_name="Team B",
+        local_score=4,
+        visitor_score=3
+    )
+
+    mock_event_repo.delete_last_by_match.return_value = deleted_event
+    mock_match_repo.get_by_id.return_value = current_match
+    mock_match_repo.update.return_value = updated_match
+
+    result = await event_use_cases.undo_last_event(match_id)
+
+    assert result is not None
+    assert result.local_score == 4
+    mock_match_repo.update.assert_called_once_with(match_id, {"local_score": 4})
+
+
+@pytest.mark.asyncio
+async def test_undo_goal_decrements_visitor_score(event_use_cases, mock_match_repo, mock_event_repo):
+    match_id = "match_123"
+    deleted_event = Event(
+        id="event_1",
+        match_id=match_id,
+        timestamp=200,
+        time_formatted="03:20",
+        player=9,
+        team=TeamSide.B,
+        action=ActionType.GOL_7M
+    )
+    current_match = Match(
+        id=match_id,
+        team_a_name="Team A",
+        team_b_name="Team B",
+        local_score=5,
+        visitor_score=3
+    )
+    updated_match = Match(
+        id=match_id,
+        team_a_name="Team A",
+        team_b_name="Team B",
+        local_score=5,
+        visitor_score=2
+    )
+
+    mock_event_repo.delete_last_by_match.return_value = deleted_event
+    mock_match_repo.get_by_id.return_value = current_match
+    mock_match_repo.update.return_value = updated_match
+
+    result = await event_use_cases.undo_last_event(match_id)
+
+    assert result is not None
+    assert result.visitor_score == 2
+    mock_match_repo.update.assert_called_once_with(match_id, {"visitor_score": 2})
+
+
+@pytest.mark.asyncio
+async def test_undo_non_goal_does_not_change_score(event_use_cases, mock_match_repo, mock_event_repo):
+    match_id = "match_123"
+    deleted_event = Event(
+        id="event_1",
+        match_id=match_id,
+        timestamp=120,
+        time_formatted="02:00",
+        player=7,
+        team=TeamSide.A,
+        action=ActionType.PERDIDA
+    )
+    current_match = Match(
+        id=match_id,
+        team_a_name="Team A",
+        team_b_name="Team B",
+        local_score=5,
+        visitor_score=3
+    )
+
+    mock_event_repo.delete_last_by_match.return_value = deleted_event
+    mock_match_repo.get_by_id.return_value = current_match
+
+    result = await event_use_cases.undo_last_event(match_id)
+
+    assert result is not None
+    assert result.local_score == 5
+    assert result.visitor_score == 3
+    mock_match_repo.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_undo_returns_none_when_no_events(event_use_cases, mock_match_repo, mock_event_repo):
+    mock_event_repo.delete_last_by_match.return_value = None
+
+    result = await event_use_cases.undo_last_event("match_123")
+
+    assert result is None
+    mock_match_repo.update.assert_not_called()

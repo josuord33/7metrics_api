@@ -58,7 +58,7 @@ DEBUG=true
 Arranca el servidor de desarrollo con recarga automática:
 
 ```bash
-uvicorn src.main:app --reload
+./venv/bin/uvicorn src.main:app --reload
 ```
 
 El servidor estará disponible en: `http://localhost:8000`
